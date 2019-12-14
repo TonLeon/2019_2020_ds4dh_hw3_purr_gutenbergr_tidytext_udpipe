@@ -1,6 +1,6 @@
 ---
 title: "hw_3"
-author: "..."
+author: "Lisa Senatorova"
 output: html_document
 ---
 
@@ -17,8 +17,30 @@ library(udpipe)
 
 ![](task_1.png)
 ```{r}
-fpl <- jsonlite::read_json(...)
-...
+fpl <- jsonlite::read_json("C:/Users/Elisaveta/Desktop/RStudio code/fpl_data_2018_2019.json")
+
+Club <- fpl%>%
+ map("Club")%>%
+  unlist()%>%
+  enframe()
+
+Goals <- fpl%>%
+  map("Goals")%>%
+  unlist()%>%
+  enframe()
+
+table <- 
+dplyr::full_join(Club, Goals, by = "name")
+table$value.y<- as.numeric(as.character(table$value.y))
+
+table%>%
+  rename(Club = value.x)%>%
+  arrange(desc(value.y))%>%
+  slice(1:30)%>%
+  ggplot(aes(fct_reorder(name, value.y), value.y, fill = Club))+
+  geom_col()+
+  coord_flip()+
+  labs(x = "", y = "",caption = "data from www.premierleague.com", title = "Number of Goals")
 ```
 
 ## Задание 3.2
@@ -27,7 +49,18 @@ fpl <- jsonlite::read_json(...)
 ![](task_2.png)
 
 ```{r}
+nachalo <- gutenberg_download(37196)
+stop_words <- read_csv("C:/Users/Elisaveta/Desktop/RStudio code/stopwords-ru.csv")
 
+nachalo %>% 
+  unnest_tokens(word, text) %>%
+  count(word, sort = TRUE) %>%
+  anti_join(stop_words)%>%
+  slice(1:20)%>%
+  ggplot(aes(fct_reorder(word, n), n))+
+  geom_col()+
+  coord_flip()+
+  labs(y = "", x = "", title = "'Женское международное движение: Сборник статей': частотные слова", capture = "source www.gutenberg.org")
 ```
 
 
@@ -43,6 +76,22 @@ fpl <- jsonlite::read_json(...)
 ![](task_3.png)
 
 ```{r}
+krasavitsa <- gutenberg_download(5316)
+krasavitsa <- str_c(krasavitsa$text, collapse = " ")
+rumodel <- udpipe_download_model(language = "russian-syntagrus")
+krasotka <- udpipe(krasavitsa, object = rumodel)
 
+krasa <- krasotka%>%
+  select(token, lemma, upos)%>%
+  mutate(upos = str_replace(upos,"DET", "PART")) %>%
+  mutate(upos = case_when(lemma == "бы" ~ "PART",
+                          lemma == "быть" ~ "VERB",
+                          TRUE ~ upos)) %>%
+  count(upos)
+
+krasa%>%
+  ggplot(aes(fct_reorder(upos, n), n))+
+  geom_col()+
+  labs(x = "", y = "", title = "Красавице, которая нюхала табак: части речи")
 ```
 
